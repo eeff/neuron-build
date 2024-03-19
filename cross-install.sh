@@ -6,6 +6,7 @@ set -e
 home=/home/neuron
 branch=v2.6
 vendor=?
+vendor_version=?
 arch=?
 gcc=?
 gxx=?
@@ -18,7 +19,8 @@ while getopts ":a:v:c:" OPT; do
             arch=$OPTARG
             ;;
         v)
-            vendor=$OPTARG
+            vendor=$(echo $OPTARG | cut -d '/' -f 1)
+            vendor_version=$(echo $OPTARG | cut -d '/' -f 2)
             ;;
         c)
             cross=$OPTARG
@@ -31,12 +33,12 @@ case $cross in
         gcc=$vendor-gcc;
         gxx=$vendor-g++;;
     (false) 
-        gcc=$home/buildroot/$vendor/output/host/bin/$vendor-gcc;
-        gxx=$home/buildroot/$vendor/output/host/bin/$vendor-g++;;
+        gcc=$home/buildroot/$vendor/$vendor_version/output/host/bin/$vendor-gcc;
+        gxx=$home/buildroot/$vendor/$vendor_version/output/host/bin/$vendor-g++;;
 esac
 
-install_dir=$home/$branch/libs/$vendor/
-library=$home/$branch/library/$vendor/
+install_dir=$home/$branch/libs/chilinkos-$vendor_version/$vendor
+library=$home/$branch/library/chilinkos-$vendor_version/$vendor
 
 echo "arch: "$arch
 echo "vendor: "$vendor
@@ -96,16 +98,13 @@ function build_openssl() {
         (true)  
             compile_prefix=$vendor-;;
         (false) 
-            compile_prefix=$home/buildroot/$vendor/output/host/bin/$vendor-;;
+            compile_prefix=$home/buildroot/$vendor/$vendor_version/output/host/bin/$vendor-;;
     esac
     cd $library
     git clone -b OpenSSL_1_1_1 https://github.com/openssl/openssl.git
     cd openssl
     mkdir -p $install_dir/openssl/ssl
     platform=linux-$arch
-    if [[ $arch == "riscv64" ]]; then
-      platform=linux-generic64
-    fi
     ./Configure $platform no-asm no-async shared \
         --prefix=$install_dir \
         --openssldir=$install_dir/openssl/ssl \

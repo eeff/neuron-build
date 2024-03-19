@@ -17,7 +17,8 @@ while getopts ":a:v:o:u:l:i:" OPT; do
             arch=$OPTARG
             ;;
         o)
-            vendor=$OPTARG
+            vendor=$(echo $OPTARG | cut -d '/' -f 1)
+            vendor_version=$(echo $OPTARG | cut -d '/' -f 2)
             ;;
 	v)
 	    version=$OPTARG
@@ -34,10 +35,11 @@ while getopts ":a:v:o:u:l:i:" OPT; do
     esac
 done
 
-neuron_dir=$home/$branch/Program/$vendor/neuron
-neuron_modules_dir=$home/$branch/Program/$vendor/neuron-modules
-package_dir=$home/$branch/Program/$vendor/package/neuron
-library=$home/$branch/libs/$vendor
+library=$home/$branch/libs/chilinkos-$vendor_version/$vendor
+neuron_dir=$home/$branch/Program/chilinkos-$vendor_version/$vendor/neuron
+neuron_modules_dir=$home/$branch/Program/chilinkos-$vendor_version/$vendor/neuron-modules
+package_dir=$home/$branch/Program/chilinkos-$vendor_version/$vendor/package/neuron
+
 script_dir="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P  )"
 
 function download_ui() {

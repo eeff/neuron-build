@@ -19,7 +19,8 @@ args = parse_args()
 
 home = '/home/neuron'
 branch = '/v2.6'
-package_dir = home + branch + '/Program/' + args.vendor + '/package/neuron'
+vendor, vendor_version = args.vendor.split('/')
+package_dir = home + branch + '/Program/' + f'chilinkos-{vendor_version}/'  + f'{vendor}/' + '/package/neuron'
 rules = []
 
 rules.append(mkdeb.FileMap("deb/conffiles", "/DEBIAN/", "r", "conffiles"))
