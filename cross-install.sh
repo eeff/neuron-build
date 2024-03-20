@@ -62,16 +62,19 @@ fi
 # $3 cmake option
 function compile_source() {
     cd $library
-    git clone https://github.com/$1
-    cd $2
-    mkdir build && cd build
+    if [ ! -d "$2" ]; then
+      git clone https://github.com/$1 $2 && cd $2
+    else
+      cd $2
+    fi
+    mkdir -p build && cd build
     cmake .. -DCMAKE_C_COMPILER=$gcc \
         -DCMAKE_CXX_COMPILER=$gxx \
         -DCMAKE_STAGING_PREFIX=$install_dir \
         -DCMAKE_PREFIX_PATH=$install_dir \
         $3
     # github-hosted runners has 2 core
-    make -j4 && make install
+    make clean && make -j4 && make install
 }
 
 # $1 repo
@@ -80,16 +83,19 @@ function compile_source() {
 # $4 cmake option
 function compile_source_with_tag() {
     cd $library
-    git clone -b $3 https://github.com/$1 $2
-    cd $2
-    mkdir build && cd build
+    if [ ! -d "$2" ]; then
+      git clone -b $3 https://github.com/$1 $2 && cd $2
+    else
+      cd $2 && git checkout $3
+    fi
+    mkdir -p build && cd build
     cmake .. -DCMAKE_C_COMPILER=$gcc \
         -DCMAKE_CXX_COMPILER=$gxx \
         -DCMAKE_STAGING_PREFIX=$install_dir \
         -DCMAKE_PREFIX_PATH=$install_dir \
         $4
     # github-hosted runners has 2 core
-    make -j4 && make install
+    make clean && make -j4 && make install
 }
 
 function build_openssl() {
@@ -101,8 +107,11 @@ function build_openssl() {
             compile_prefix=$home/buildroot/$vendor/$vendor_version/output/host/bin/$vendor-;;
     esac
     cd $library
-    git clone -b OpenSSL_1_1_1 https://github.com/openssl/openssl.git
-    cd openssl
+    if [ ! -d "openssl" ]; then
+      git clone -b OpenSSL_1_1_1 https://github.com/openssl/openssl.git && cd openssl
+    else
+      cd openssl && git checkout OpenSSL_1_1_1
+    fi
     mkdir -p $install_dir/openssl/ssl
     platform=linux-$arch
     ./Configure $platform no-asm no-async shared \
@@ -117,36 +126,45 @@ function build_openssl() {
 
 function build_zlog() {
     cd $library
-    git clone -b 1.2.15 https://github.com/HardySimpson/zlog.git
+    if [ ! -d "zlog" ]; then
+      git clone -b 1.2.15 https://github.com/HardySimpson/zlog.git
+    fi
     cd zlog
+    make clean
     make CC=$gcc
     make PREFIX=$install_dir install
 }
 
 function build_sqlite3() {
     cd $library
-    curl https://www.sqlite.org/2022/sqlite-autoconf-3390000.tar.gz \
-      --output sqlite3.tar.gz
-    mkdir -p sqlite3
-    tar xzf sqlite3.tar.gz --strip-components=1 -C sqlite3
+    if [ ! -d "sqlite3" ]; then
+      curl https://www.sqlite.org/2022/sqlite-autoconf-3390000.tar.gz \
+        --output sqlite3.tar.gz
+      mkdir -p sqlite3
+      tar xzf sqlite3.tar.gz --strip-components=1 -C sqlite3
+    fi
     cd sqlite3
 
     ./configure --prefix=$install_dir \
                 --disable-shared --disable-readline \
                 --host $arch CC=$gcc  CFLAGS=-fPIC
 
+    make clean
     make -j4
     make install
 }
 
 function build_protobuf() {
     cd $library
-    wget --no-check-certificate --content-disposition https://github.com/protocolbuffers/protobuf/releases/download/v3.20.1/protobuf-cpp-3.20.1.tar.gz
-    tar -xzvf protobuf-cpp-3.20.1.tar.gz
+    if [ ! -d "protobuf-3.20.1" ]; then
+      wget --no-check-certificate --content-disposition https://github.com/protocolbuffers/protobuf/releases/download/v3.20.1/protobuf-cpp-3.20.1.tar.gz
+      tar -xzvf protobuf-cpp-3.20.1.tar.gz
+    fi
     cd protobuf-3.20.1
 
     ./configure --prefix=$install_dir CC=$gcc --host=$vendor --enable-shared=no CFLAGS=-fPIC CXXFLAGS=-fPIC
 
+    make clean
     make -j4
     make install
 
@@ -155,12 +173,15 @@ function build_protobuf() {
 
 function build_protobuf-c(){
     cd $library
-    git clone -b v1.4.0 https://github.com/protobuf-c/protobuf-c.git
+    if [ ! -d "protobuf-c" ]; then
+      git clone -b v1.4.0 https://github.com/protobuf-c/protobuf-c.git
+    fi
     cd protobuf-c
     ./autogen.sh
 
     ./configure --prefix=$install_dir CC=$gcc --host=$vendor --disable-protoc --enable-shared=no CFLAGS=-fPIC CXXFLAGS=-fPIC PKG_CONFIG_PATH=$vendor
 
+    make clean
     make -j4
     make install
 
@@ -169,17 +190,20 @@ function build_protobuf-c(){
 
 function build_libxml2(){
     cd $library
-    git clone -b v2.9.14 https://github.com/GNOME/libxml2
+    if [ ! -d "libxml2" ]; then
+      git clone -b v2.9.14 https://github.com/GNOME/libxml2
+    fi
     cd libxml2
     ./autogen.sh
 
     ./configure --prefix=$install_dir CC=$gcc --host=$vendor --enable-shared=no --with-http=no --with-python=no --with-lzma=no --with-zlib=no CFLAGS='-O2 -fno-semantic-interposition -fPIC' PKG_CONFIG_PATH=$vendor
 
+    make clean
     make -j4
     make install
 }
 
-sudo rm -rf $library
+#sudo rm -rf $library
 sudo rm -rf $install_dir
 mkdir -p $library
 mkdir -p $install_dir/bin
